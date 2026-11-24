@@ -425,13 +425,14 @@
           <div class="flex items-center gap-2 text-[11px] min-w-0">
             <canvas id="audio-eq" width="44" height="20" class="rounded bg-slate-950/60 border border-cyan-500/25 shrink-0"></canvas>
             <span class="font-display text-amber-300 tracking-wider shrink-0">STORYTAKEFLOW:</span>
-            <span id="custom-track-name" class="text-slate-300 font-mono truncate max-w-[140px]">Built-in Synth</span>
+            <span id="custom-track-name" class="text-slate-300 font-mono truncate max-w-[140px]">Caribbean Groove · Storytakeflow</span>
           </div>
           <div class="flex items-center gap-1.5">
             <button id="btn-music-play" type="button" class="hidden px-2.5 py-1.5 rounded-lg font-display text-[10px] bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 hover:bg-cyan-500/30 transition">❚❚</button>
-            <input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.8" title="Music Volume" class="w-14 accent-amber-400 cursor-pointer" />
+            <input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.5" title="Music Volume" class="w-14 accent-amber-400 cursor-pointer" />
             <div class="flex items-center gap-1" id="music-mode-selector">
-              <button type="button" data-music-mode="river" class="diff-btn selected px-2 py-1.5 rounded-lg font-display text-[10px]">RIVER</button>
+              <button type="button" data-music-mode="caribbean" class="diff-btn selected px-2 py-1.5 rounded-lg font-display text-[10px]">CARIBBEAN</button>
+              <button type="button" data-music-mode="river" class="diff-btn px-2 py-1.5 rounded-lg font-display text-[10px]">RIVER</button>
               <button type="button" data-music-mode="nature" class="diff-btn px-2 py-1.5 rounded-lg font-display text-[10px]">NATURE</button>
               <button type="button" data-music-mode="mine" class="diff-btn px-2 py-1.5 rounded-lg font-display text-[10px]">MY MP3</button>
             </div>
@@ -938,7 +939,7 @@
     let qualityTier = isMobileDevice ? 'HIGH' : '4K'; // '4K' | 'HIGH' | 'MED'
     let highQuality = true;
     let isMuted = false;
-    let musicMode = 'river'; // 'river' = built-in synth · 'nature' = river & engine sounds only · 'mine' = custom file
+    let musicMode = 'caribbean'; // 'caribbean' = Storytakeflow Caribbean Groove track · 'river' = built-in synth · 'nature' = river & engine sounds only · 'mine' = custom file
     let tiltEnabled = false;
     let tiltValue = 0;
 
@@ -961,6 +962,7 @@
       missionDone: false,
       podX: 0,
       podVX: 0,
+      steerSmooth: 0,
       podRoll: 0,
       podPitch: 0,
       shake: 0,
@@ -1269,16 +1271,20 @@
 
     function createGlowSpriteTexture() {
       const c = document.createElement('canvas');
-      c.width = c.height = 128;
+      c.width = c.height = 256;
       const ctx = c.getContext('2d');
-      const g = ctx.createRadialGradient(64, 64, 2, 64, 64, 62);
+      const g = ctx.createRadialGradient(128, 128, 4, 128, 128, 124);
       g.addColorStop(0, 'rgba(255,255,255,1)');
       g.addColorStop(0.22, 'rgba(255,255,255,0.65)');
       g.addColorStop(0.55, 'rgba(255,255,255,0.16)');
       g.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = g;
-      ctx.fillRect(0, 0, 128, 128);
-      return new THREE.CanvasTexture(c);
+      ctx.fillRect(0, 0, 256, 256);
+      const tex = new THREE.CanvasTexture(c);
+      tex.magFilter = THREE.LinearFilter;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.generateMipmaps = true;
+      return tex;
     }
 
     function makeGlowSprite(colorHex, scale) {
@@ -1450,7 +1456,7 @@
         return false;
       }
 
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, qualityTier === '4K' ? 2.5 : highQuality ? 2 : 1));
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       const initW = window.innerWidth;
       const initH = window.innerHeight;
       renderer.setSize(initW, initH);
@@ -1478,7 +1484,7 @@
 
       bankTex = createSavannaBankTex();
       const maxAniso = Math.min(16, renderer.capabilities.getMaxAnisotropy ? renderer.capabilities.getMaxAnisotropy() : 4);
-      [hullNormalTex, rockTex, rockNormalTex, bankTex].forEach(t => { if (t) { t.anisotropy = maxAniso; t.needsUpdate = true; } });
+      [hullTex, hullNormalTex, rockTex, rockNormalTex, bankTex].forEach(t => { if (t) { t.anisotropy = maxAniso; t.needsUpdate = true; } });
       glowSpriteTex = createGlowSpriteTexture();
       buildEnvironmentMap();
 
@@ -3302,6 +3308,7 @@
         missionDone: false,
         podX: 0,
         podVX: 0,
+        steerSmooth: 0,
         podRoll: 0,
         podPitch: 0,
         shake: 0,
@@ -3450,19 +3457,19 @@
         podGroup.position.y = 0.58 + Math.sin(elapsed * 2.4) * 0.08;
         podGroup.rotation.z = Math.sin(elapsed * 1.1) * 0.06;
         if (inspectTarget === 0) {
-          camera.position.lerp(camScratch.set(Math.sin(elapsed * 0.35) * 3.8, 3.2, 7.6), 0.07);
+          camera.position.lerp(camScratch.set(Math.sin(elapsed * 0.35) * 3.8, 3.2, 7.6), 1 - Math.exp(-4.2 * dt));
           camera.lookAt(0, 0.85, 0);
         } else if (inspectTarget === 1) {
           // Inspect Interior Lounge & Low Tesla Dash
-          camera.position.lerp(camScratch.set(0.35, 1.48, 0.25), 0.08);
+          camera.position.lerp(camScratch.set(0.35, 1.48, 0.25), 1 - Math.exp(-4.8 * dt));
           camera.lookAt(0, 0.92, -1.2);
         } else if (inspectTarget === 2) {
           // Inspect Confluence People & Nyota Houses on Bank
-          camera.position.lerp(camScratch.set(10.5, 3.2, -12), 0.07);
+          camera.position.lerp(camScratch.set(10.5, 3.2, -12), 1 - Math.exp(-4.2 * dt));
           camera.lookAt(18.5, 1.8, -22);
         } else {
           // Inspect African River Trees & Birds
-          camera.position.lerp(camScratch.set(-8.5, 5.2, -14), 0.07);
+          camera.position.lerp(camScratch.set(-8.5, 5.2, -14), 1 - Math.exp(-4.2 * dt));
           camera.lookAt(-19.5, 4.5, -28);
         }
         canyonSegments.forEach(seg => {
@@ -3776,6 +3783,11 @@
         steer = Math.max(-1, Math.min(1, (targetX - run.podX) * 0.45));
       }
 
+      // Smooth steering: ease the raw input toward its target with frame-rate
+      // independent exponential damping, so the pod glides instead of snapping
+      run.steerSmooth += (steer - run.steerSmooth) * (1 - Math.exp(-9 * dt));
+      if (steer === 0 && Math.abs(run.steerSmooth) < 0.001) run.steerSmooth = 0;
+
       // Surge logic (scales with Surge Core upgrade)
       const wantsSurge = keys.surge || touch.surge || padSurge;
       const surgeRegen = 5.5 + (upgrades.capacitor || 0) * 2.4;
@@ -3801,19 +3813,23 @@
         run.podVX = run.dashDir * 42;
         run.podX += run.podVX * dt;
       } else if (Math.abs(touch.dragDelta) > 0.01) {
-        run.podX += touch.dragDelta * 0.045;
-        run.podVX = touch.dragDelta * 0.9;
-        touch.dragDelta = 0;
+        // Drain the accumulated drag gradually so touch steering glides instead of teleporting
+        const dragF = Math.max(0.01, 1 - Math.exp(-16 * dt));
+        const dragStep = touch.dragDelta * dragF;
+        run.podX += dragStep * 0.045;
+        run.podVX = dragStep * 0.9 / dragF;
+        touch.dragDelta -= dragStep;
+        if (Math.abs(touch.dragDelta) < 0.05) touch.dragDelta = 0;
       } else {
-        const targetVX = steer * pod.handling;
-        run.podVX += (targetVX - run.podVX) * Math.min(1, dt * 10);
+        const targetVX = run.steerSmooth * pod.handling;
+        run.podVX += (targetVX - run.podVX) * (1 - Math.exp(-11 * dt));
         run.podX += run.podVX * dt;
       }
       run.podX = Math.max(-RIVER_HALF_WIDTH + 1.2, Math.min(RIVER_HALF_WIDTH - 1.2, run.podX));
 
       // Banking & bobbing
       const targetRoll = -run.podVX * 0.028;
-      run.podRoll += (targetRoll - run.podRoll) * Math.min(1, dt * 12);
+      run.podRoll += (targetRoll - run.podRoll) * (1 - Math.exp(-12 * dt));
       const waveBob = Math.sin(elapsed * 5.2) * 0.06;
 
       podGroup.position.set(run.podX, 0.58 + waveBob, 0);
@@ -4100,7 +4116,7 @@
       const isPortrait = (window.innerWidth / Math.max(1, window.innerHeight)) < 0.85;
       const baseFov = isPortrait ? 74 : 60;
       const targetFOV = (run.isSurging || run.overdriveTimer > 0 || run.boostTimer > 0) ? baseFov + 12 : baseFov;
-      camera.fov += (targetFOV - camera.fov) * Math.min(1, dt * 6);
+      camera.fov += (targetFOV - camera.fov) * (1 - Math.exp(-6 * dt));
       camera.updateProjectionMatrix();
 
       if (cameraMode === 'COCKPIT') {
@@ -4158,13 +4174,13 @@
           }
         }
       } else if (cameraMode === 'EXTERIOR') {
-        camera.position.lerp(_camTarget.set(run.podX + 5.2 + sx, 3.2 + sy, 6.4), Math.min(1, dt * 8));
+        camera.position.lerp(_camTarget.set(run.podX + 5.2 + sx, 3.2 + sy, 6.4), 1 - Math.exp(-7 * dt));
         camera.lookAt(run.podX, 0.9, -3);
       } else if (cameraMode === 'TOP') {
-        camera.position.lerp(_camTarget.set(run.podX * 0.4 + sx, 22 + sy, 6.5), Math.min(1, dt * 8));
+        camera.position.lerp(_camTarget.set(run.podX * 0.4 + sx, 22 + sy, 6.5), 1 - Math.exp(-7 * dt));
         camera.lookAt(run.podX * 0.5, 0, -18);
       } else {
-        camera.position.lerp(_camTarget.set(run.podX * 0.72 + sx, 4.3 + sy, 9.2), Math.min(1, dt * 9));
+        camera.position.lerp(_camTarget.set(run.podX * 0.72 + sx, 4.3 + sy, 9.2), 1 - Math.exp(-8 * dt));
         camera.lookAt(run.podX * 0.85, 1.1, -14);
         camera.rotation.z = run.podRoll * 0.25;
       }
@@ -4370,7 +4386,7 @@
       else { qualityTier = '4K'; highQuality = true; }
       syncQualityLabels();
       if (renderer) {
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, qualityTier === '4K' ? 2.5 : highQuality ? 2 : 1));
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         renderer.shadowMap.enabled = highQuality;
         onResize();
       }
@@ -4529,18 +4545,36 @@
       });
     }
 
-    // Music mode: RIVER (built-in synth) · NATURE (river & engine sounds only) · MY MP3 (custom file)
+    // Music mode: CARIBBEAN (Storytakeflow track) · RIVER (built-in synth) · NATURE (river & engine sounds only) · MY MP3 (custom file)
     const musicModeBtns = document.querySelectorAll('#music-mode-selector [data-music-mode]');
     function setMusicMode(mode) {
       musicMode = mode;
       musicModeBtns.forEach(b => b.classList.toggle('selected', b.dataset.musicMode === mode));
-      if (mode !== 'mine' && stPlayer) {
+      if (mode === 'caribbean' && stPlayer) {
+        // Storytakeflow — "Caribbean Groove" (Take 1, Martin's pick) as the built-in background track
+        if (!stPlayer.src || stPlayer.src.indexOf('caribbean-theme.mp3') === -1) stPlayer.src = 'assets/caribbean-theme.mp3';
+        stPlayer.loop = true;
+        stPlayer.volume = stVol ? parseFloat(stVol.value) : 0.5;
+        stPlayer.muted = isMuted;
+        window.__customMusicActive = true; // keeps the synth arpeggiator silent while the track plays
+        document.getElementById('custom-track-name').textContent = 'Caribbean Groove · Storytakeflow';
+        if (stPlayBtn) { stPlayBtn.classList.remove('hidden'); stPlayBtn.textContent = stPlayer.paused ? '▶' : '❚❚'; }
+        stPlayer.play().then(() => { if (stPlayBtn) stPlayBtn.textContent = '❚❚'; }).catch(() => {});
+      } else if (mode !== 'mine' && stPlayer) {
         stPlayer.pause();
         window.__customMusicActive = false;
         document.getElementById('custom-track-name').textContent = mode === 'nature' ? 'Nature Only' : 'Built-in Synth';
         if (stPlayBtn) stPlayBtn.classList.add('hidden');
       }
     }
+    // Browsers block autoplay: start the background track on the player's first interaction
+    const startBgMusicOnce = () => {
+      window.removeEventListener('pointerdown', startBgMusicOnce);
+      window.removeEventListener('keydown', startBgMusicOnce);
+      if (musicMode === 'caribbean') setMusicMode('caribbean');
+    };
+    window.addEventListener('pointerdown', startBgMusicOnce);
+    window.addEventListener('keydown', startBgMusicOnce);
     musicModeBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         if (btn.dataset.musicMode === 'mine') { if (stInput) stInput.click(); return; }
