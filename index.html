@@ -467,13 +467,13 @@
           <div class="flex items-center gap-2 text-[11px] min-w-0">
             <canvas id="audio-eq" width="44" height="20" class="rounded bg-slate-950/60 border border-cyan-500/25 shrink-0"></canvas>
             <span class="font-display text-amber-300 tracking-wider shrink-0">STORYTAKEFLOW:</span>
-            <span id="custom-track-name" class="text-slate-300 font-mono truncate max-w-[140px]">Caribbean Groove · Storytakeflow</span>
+            <span id="custom-track-name" class="text-slate-300 font-mono truncate max-w-[140px]">Kariba Piano · Storytakeflow</span>
           </div>
           <div class="flex items-center gap-1.5">
             <button id="btn-music-play" type="button" class="hidden px-2.5 py-1.5 rounded-lg font-display text-[10px] bg-cyan-500/20 border border-cyan-400/50 text-cyan-200 hover:bg-cyan-500/30 transition">❚❚</button>
             <input id="music-volume" type="range" min="0" max="1" step="0.05" value="0.5" title="Music Volume" class="w-14 accent-amber-400 cursor-pointer" />
             <div class="flex items-center gap-1" id="music-mode-selector">
-              <button type="button" data-music-mode="caribbean" class="diff-btn selected px-2 py-1.5 rounded-lg font-display text-[10px]">CARIBBEAN</button>
+              <button type="button" data-music-mode="caribbean" class="diff-btn selected px-2 py-1.5 rounded-lg font-display text-[10px]">KARIBA PIANO</button>
               <button type="button" data-music-mode="river" class="diff-btn px-2 py-1.5 rounded-lg font-display text-[10px]">RIVER</button>
               <button type="button" data-music-mode="nature" class="diff-btn px-2 py-1.5 rounded-lg font-display text-[10px]">NATURE</button>
               <button type="button" data-music-mode="mine" class="diff-btn px-2 py-1.5 rounded-lg font-display text-[10px]">MY MP3</button>
@@ -981,7 +981,7 @@
     let qualityTier = isMobileDevice ? 'HIGH' : '4K'; // '4K' | 'HIGH' | 'MED'
     let highQuality = true;
     let isMuted = false;
-    let musicMode = 'caribbean'; // 'caribbean' = Storytakeflow Caribbean Groove track · 'river' = built-in synth · 'nature' = river & engine sounds only · 'mine' = custom file
+    let musicMode = 'caribbean'; // 'caribbean' = Storytakeflow "Kariba Piano" track · 'river' = built-in synth · 'nature' = river & engine sounds only · 'mine' = custom file
     let tiltEnabled = false;
     let tiltValue = 0;
 
@@ -4598,19 +4598,19 @@
       });
     }
 
-    // Music mode: CARIBBEAN (Storytakeflow track) · RIVER (built-in synth) · NATURE (river & engine sounds only) · MY MP3 (custom file)
+    // Music mode: KARIBA PIANO (Storytakeflow track) · RIVER (built-in synth) · NATURE (river & engine sounds only) · MY MP3 (custom file)
     const musicModeBtns = document.querySelectorAll('#music-mode-selector [data-music-mode]');
     function setMusicMode(mode) {
       musicMode = mode;
       musicModeBtns.forEach(b => b.classList.toggle('selected', b.dataset.musicMode === mode));
       if (mode === 'caribbean' && stPlayer) {
-        // Storytakeflow — "Caribbean Groove" (Take 1, Martin's pick) as the built-in background track
-        if (!stPlayer.src || stPlayer.src.indexOf('caribbean-theme.mp3') === -1) stPlayer.src = 'assets/caribbean-theme.mp3';
+        // Storytakeflow — "Kariba Piano" (title track of the Kariba Piano album, Martin's pick) as the built-in background track
+        if (!stPlayer.src || stPlayer.src.indexOf('kariba-piano-theme.mp3') === -1) stPlayer.src = 'assets/kariba-piano-theme.mp3';
         stPlayer.loop = true;
         stPlayer.volume = stVol ? parseFloat(stVol.value) : 0.5;
         stPlayer.muted = isMuted;
         window.__customMusicActive = true; // keeps the synth arpeggiator silent while the track plays
-        document.getElementById('custom-track-name').textContent = 'Caribbean Groove · Storytakeflow';
+        document.getElementById('custom-track-name').textContent = 'Kariba Piano · Storytakeflow';
         if (stPlayBtn) { stPlayBtn.classList.remove('hidden'); stPlayBtn.textContent = stPlayer.paused ? '▶' : '❚❚'; }
         stPlayer.play().then(() => { if (stPlayBtn) stPlayBtn.textContent = '❚❚'; }).catch(() => {});
       } else if (mode !== 'mine' && stPlayer) {
